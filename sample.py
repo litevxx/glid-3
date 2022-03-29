@@ -34,7 +34,7 @@ from ldm.util import instantiate_from_config
 
 import os
 sys.path.insert(1, '/kaggle/working/glide-3')
-!mkdir /kaggle/working/output
+os.mkdir("/kaggle/working/output")
 class Args:
     def __init__(self):
         self.model_path = "ema-latest.pt"
