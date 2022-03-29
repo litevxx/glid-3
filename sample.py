@@ -91,7 +91,7 @@ model_params = {
     'class_cond': False,
     'diffusion_steps': 1000,
     'rescale_timesteps': True,
-    'timestep_respacing': '1000',  # Modify this value to decrease the number of
+    'timestep_respacing': '300',  # Modify this value to decrease the number of
                                    # timesteps.
     'image_size': 32,
     'learn_sigma': True,
