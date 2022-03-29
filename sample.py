@@ -4,12 +4,15 @@ import math
 import sys
 
 from PIL import Image
+from IPython.display import Image as DispImage
 import requests
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torchvision import transforms
 from torchvision.transforms import functional as TF
+from random import randint
+sys.path.insert(1, '/kaggle/working/glid-3')
 from tqdm.notebook import tqdm
 
 import numpy as np
@@ -26,52 +29,30 @@ import pickle
 
 from clip_custom import clip
 from omegaconf import OmegaConf
+sys.path.insert(1, '/kaggle/working/latent-diffusion')
 from ldm.util import instantiate_from_config
 
 import os
+sys.path.insert(1, '/kaggle/working/glide-3')
+!mkdir /kaggle/working/output
+class Args:
+    def __init__(self):
+        self.model_path = "ema-latest.pt"
+        self.ldm_path = "/kaggle/working/vq-f8/model.ckpt"
+        self.ldm_config_path = "/kaggle/working/glid-3/vq-f8/config.yaml"
+        self.text = "a goose next to a red ball"
+        self.prefix = "glid3_"
+        self.num_batches = 1
+        self.batch_size = 1
+        self.width = 256
+        self.height = 256
+        self.seed = -1
+        self.guidance_scale = 4.0
+        self.cpu = False
+        self.clip_score = False
 
-# argument parsing
-
-parser = argparse.ArgumentParser()
-
-parser.add_argument('--model_path', type=str, default = 'ema-latest.pt',
-                   help='path to the diffusion model')
-
-parser.add_argument('--ldm_path', type=str, default = './vq-f8/model.ckpt',
-                   help='path to the LDM first stage model')
-
-parser.add_argument('--ldm_config_path', type=str, default = './vq-f8/config.yaml',
-                   help='path to the LDM first stage config. This should be a .yaml file')
-
-parser.add_argument('--text', type = str, required = False,
-                    help='your text prompt, separate with | characters')
-
-parser.add_argument('--prefix', type = str, required = False, default = '',
-                    help='prefix for output files')
-
-parser.add_argument('--num_batches', type = int, default = 1, required = False,
-                    help='number of batches')
-
-parser.add_argument('--batch_size', type = int, default = 1, required = False,
-                    help='batch size')
-
-parser.add_argument('--width', type = int, default = 256, required = False,
-                    help='image size of output (multiple of 8)')
-
-parser.add_argument('--height', type = int, default = 256, required = False,
-                    help='image size of output (multiple of 8)')
-
-parser.add_argument('--seed', type = int, default=-1, required = False,
-                    help='random seed')
-
-parser.add_argument('--guidance_scale', type = float, default = 4.0, required = False,
-                    help='classifier-free guidance scale')
-
-parser.add_argument('--cpu', dest='cpu', action='store_true')
-
-parser.add_argument('--clip_score', dest='clip_score', action='store_true')
-
-args = parser.parse_args()
+# initalize the class
+args = Args()
 
 def fetch(url_or_path):
     if str(url_or_path).startswith('http://') or str(url_or_path).startswith('https://'):
@@ -83,9 +64,10 @@ def fetch(url_or_path):
         return fd
     return open(url_or_path, 'rb')
 
+#device = torch.device('cuda:0' if (torch.cuda.is_available() and not args.cpu) else 'cpu')
+#print('Using device:', device)
 device = torch.device('cuda:0' if (torch.cuda.is_available() and not args.cpu) else 'cpu')
 print('Using device:', device)
-
 model_params = {
     'attention_resolutions': '32,16,8',
     'class_cond': False,
